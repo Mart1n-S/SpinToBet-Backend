@@ -1,0 +1,31 @@
+services:
+  database:
+    image: mysql:latest
+    container_name: bdd-spintobet
+    environment:
+      MYSQL_DATABASE: bdd_spintobet
+      MYSQL_USER: user
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - '3306:3306'
+    volumes:
+      - database_spintobet:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin-spintobet
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: database
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_PASSWORD: root
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  database_spintobet:
