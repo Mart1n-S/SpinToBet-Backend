@@ -21,7 +21,7 @@ class UserFixtures extends Fixture
         for ($i = 0; $i < 10; $i++) {
             $user = new User();
             $user->setPseudo($faker->firstName);
-            $user->IsVerified(true);
+            $user->setIsVerified(true);
             $user->setEmail($faker->unique()->safeEmail);
             $user->setPassword($this->passwordHasher->hashPassword(
                 $user,
@@ -33,7 +33,7 @@ class UserFixtures extends Fixture
         // Créer un utilisateur admin
         $userAdmin = new User();
         $userAdmin->setPseudo('admin');
-        $userAdmin->IsVerified(true);
+        $userAdmin->setIsVerified(true);
         $userAdmin->setEmail('admin@admin.com');
         $userAdmin->setRoles(['ROLE_ADMIN']);
         $userAdmin->setPassword($this->passwordHasher->hashPassword(
@@ -45,7 +45,7 @@ class UserFixtures extends Fixture
         // Création d'un utilisateur classique
         $userClassique = new User();
         $userClassique->setPseudo('userClassique');
-        $userClassique->IsVerified(true);
+        $userClassique->setIsVerified(true);
         $userClassique->setEmail('user@user.com');
         $userClassique->setPassword($this->passwordHasher->hashPassword(
             $userClassique,

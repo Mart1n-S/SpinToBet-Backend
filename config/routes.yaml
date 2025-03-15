@@ -7,5 +7,6 @@ controllers:
 api_login:
   path: /api/login
   methods: ["POST"]
-# api_refresh_token:
-#   path: /api/token/refresh
+
+api_refresh_token:
+  path: /api/token/refresh

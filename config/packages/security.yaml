@@ -17,10 +17,10 @@ security:
     login:
       pattern: ^/api/login
       stateless: true
-      # lazy: true
-      # provider: app_user_provider
-      # custom_authenticator:
-      #   - App\Security\ApiAuthenticator
+      lazy: true
+      provider: app_user_provider
+      custom_authenticator:
+        - App\Security\ApiAuthenticator
       json_login:
         check_path: /api/login # La route pour la connexion
         username_path: email # L'email est utilisé comme identifiant
@@ -30,19 +30,31 @@ security:
     api:
       pattern: ^/api
       stateless: true
-      # provider: app_user_provider
-      # entry_point: jwt
+      provider: app_user_provider
+      entry_point: jwt
       jwt: ~ # Utilisation du JWT comme méthode d'authentification
-      # refresh_jwt:
-      #   check_path: /api/token/refresh
+      refresh_jwt:
+        check_path: /api/token/refresh
 
   # Remarque : Seul le *premier* contrôle d'accès qui correspondra sera utilisé
   access_control:
+    # <----- Accès public (sans authentification) -----> #
     - {
         path: ^/api/(login|token/refresh),
         roles: PUBLIC_ACCESS,
-        methods: ["POST"],
-      } # La route de login est publique
+        methods: [POST],
+      } # Login et rafraîchissement du token
+    - { path: ^/api/users, roles: PUBLIC_ACCESS, methods: [POST] } # Création d'un utilisateur
+
+    # <----- Accès réservé aux utilisateurs connectés -----> #
+    - {
+        path: ^/api/users,
+        roles: IS_AUTHENTICATED_FULLY,
+        methods: [GET, PATCH],
+      } # Récupérer ou modifier l'utilisateur connecté
+
+    # <----- Accès réservé aux administrateurs -----> #
+    - { path: ^/api/admin, roles: ROLE_ADMIN } # Toutes les routes sous /api/admin nécessitent le rôle ROLE_ADMIN
 when@test:
   security:
     password_hashers:
