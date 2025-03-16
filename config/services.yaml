@@ -27,6 +27,11 @@ services:
     bind:
       $processore: "@api_platform.doctrine.orm.state.persist_processor"
 
+  App\Security\ApiAuthenticator:
+    arguments:
+      $entityManager: "@doctrine.orm.entity_manager"
+      $rateLimiterFactory: "@limiter.login_throttling"
+
   App\EventListener\AuthenticationSuccessListener:
     tags:
       - {
@@ -34,7 +39,14 @@ services:
           event: "security.authentication.success",
           method: "onAuthenticationSuccess",
         }
+  App\EventListener\ExceptionListener:
+    tags:
+      - { name: "kernel.event_listener", event: "kernel.exception" }
 
   App\Controller\:
     resource: "../src/Controller"
     tags: ["controller.service_arguments"]
+
+  App\Controller\RegistrationController:
+    arguments:
+      $rateLimiterFactory: "@limiter.email_confirmation_limiter"

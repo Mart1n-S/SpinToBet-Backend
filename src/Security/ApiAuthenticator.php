@@ -7,6 +7,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Security\Exception\TooManyRequestsException;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -17,10 +19,12 @@ use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPasspor
 class ApiAuthenticator extends AbstractAuthenticator
 {
     private $entityManager;
+    private $rateLimiterFactory;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, RateLimiterFactory $rateLimiterFactory)
     {
         $this->entityManager = $entityManager;
+        $this->rateLimiterFactory = $rateLimiterFactory;
     }
 
     public function supports(Request $request): ?bool
@@ -31,21 +35,34 @@ class ApiAuthenticator extends AbstractAuthenticator
     public function authenticate(Request $request): Passport
     {
         // Si la requête est un POST sur /api/login, on récupère les identifiants email et mot de passe.
-
         $data = json_decode($request->getContent(), true);
+        $email = $data['email'] ?? null;
+        $password = $data['password'] ?? null;
 
-        if (!isset($data['email']) || !isset($data['password'])) {
+        if (!isset($email) || !isset($password)) {
             throw new AuthenticationException('L\'email et le mot de passe sont requis.');
         }
 
-        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $data['email']]);
+        // Associe l'email et l'adresse IP du client pour le rate limiter
+        $clientIp = $request->getClientIp();
+        $limiterKey = $email . '_' . $clientIp;
+
+        // Appliquer le rate limiter
+        $limiter = $this->rateLimiterFactory->create($limiterKey);
+        $limit = $limiter->consume();
+
+        if (!$limit->isAccepted()) {
+            throw new TooManyRequestsException($limit->getRetryAfter()->getTimestamp(), 'Trop de tentatives de connexion. Veuillez réessayer dans :');
+        }
+
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['email' => $email]);
 
         if (!$user) {
             throw new AuthenticationException('Les identifiants sont incorrects.');
         }
 
         // Vérification du mot de passe
-        if (!password_verify($data['password'], $user->getPassword())) {
+        if (!password_verify($password, $user->getPassword())) {
             throw new AuthenticationException('Les identifiants sont incorrects.');
         }
 
@@ -72,6 +89,12 @@ class ApiAuthenticator extends AbstractAuthenticator
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
     {
+        if ($exception instanceof TooManyRequestsException) {
+            return new JsonResponse([
+                'message' => $exception->getMessageKey()
+            ], Response::HTTP_TOO_MANY_REQUESTS);
+        }
+
         return new JsonResponse([
             'message' => $exception->getMessage()
         ], Response::HTTP_UNAUTHORIZED);

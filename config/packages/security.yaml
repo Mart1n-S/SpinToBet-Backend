@@ -44,6 +44,11 @@ security:
         roles: PUBLIC_ACCESS,
         methods: [POST],
       } # Login et rafraîchissement du token
+    - {
+        path: ^/api/request-new-confirmation-email,
+        roles: PUBLIC_ACCESS,
+        methods: [POST],
+      } # Demande d'un nouvel envoi d'email de confirmation
     - { path: ^/api/users, roles: PUBLIC_ACCESS, methods: [POST] } # Création d'un utilisateur
 
     # <----- Accès réservé aux utilisateurs connectés -----> #

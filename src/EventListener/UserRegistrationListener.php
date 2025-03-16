@@ -15,13 +15,19 @@ class UserRegistrationListener
 {
     public function __construct(private EmailVerifier $emailVerifier, private MailerInterface $mailer) {}
 
+    /**
+     * Envoie un email de confirmation à l'utilisateur après l'inscription.
+     *
+     * @param User $user
+     * @return void
+     */
     public function sendConfirmationEmail(User $user): void
     {
         // Vérifier si l'utilisateur est créé
         if ($user->isVerified() === false) {
             try {
                 $email = (new TemplatedEmail())
-                    ->from(new Address('no-reply@gmail.com', 'SpinToBet'))
+                    ->from(new Address('no-reply@spintobet.com', 'SpinToBet'))
                     ->to($user->getEmail())
                     ->subject('Merci de confirmer votre email')
                     ->htmlTemplate('emails/confirmation_email.html.twig');
