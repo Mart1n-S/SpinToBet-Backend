@@ -39,11 +39,17 @@ api_platform:
     <p><em>Note : Les utilisateurs doivent être authentifiés pour accéder à leurs données personnelles.</em></p>
 
   formats:
-    json: ["application/json"]
+    jsonld: ["application/ld+json"] # Activer JSON-LD => permet de récupérer des données comme la pagination
+    json: ["application/json"] # Garder JSON simple si nécessaire
   patch_formats:
     json: ["application/merge-patch+json"]
 
   defaults:
+    pagination_enabled: true
+    pagination_items_per_page: 10 # Nombre d'éléments par page par défaut
+    pagination_client_enabled: true # Permet au client de modifier la pagination via des paramètres
+    pagination_client_items_per_page: true # Permet au client de choisir le nombre d'éléments
+    pagination_maximum_items_per_page: 20 # Évite que l'utilisateur ne demande trop d'éléments
     stateless: true
     cache_headers:
       vary: ["Content-Type", "Authorization", "Origin"]
