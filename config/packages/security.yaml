@@ -49,6 +49,12 @@ security:
         roles: PUBLIC_ACCESS,
         methods: [POST],
       } # Demande d'un nouvel envoi d'email de confirmation
+    - {
+        path: ^/api/request-password-reset,
+        roles: PUBLIC_ACCESS,
+        methods: [POST],
+      } # Demande de réinitialisation du mot de passe
+    - { path: ^/api/reset-password, roles: PUBLIC_ACCESS, methods: [POST] } # Réinitialisation du mot de passe
     - { path: ^/api/users, roles: PUBLIC_ACCESS, methods: [POST] } # Création d'un utilisateur
 
     # <----- Accès réservé aux utilisateurs connectés -----> #

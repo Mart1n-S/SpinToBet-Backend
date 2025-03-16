@@ -16,11 +16,13 @@ use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use SymfonyCasts\Bundle\VerifyEmail\Exception\VerifyEmailExceptionInterface;
 
+// TODO: Penser à ajuster la route dans services.yaml pour que le lien envoyer par mail soit correct (actuellement on envoie un lien qui pointe directmeent sur la route de vérification de l'email)
+// Il faut que le lien envoyé par mail pointe sur la route du frontend et ensuite le frontend tape sur cette route
 class RegistrationController extends AbstractController
 {
     public function __construct(private EmailVerifier $emailVerifier, private UserRepository $userRepository, private UserRegistrationListener $userRegistrationListener, private RateLimiterFactory $rateLimiterFactory) {}
 
-    #[Route('/verify/email', name: 'app_verify_email')]
+    #[Route('/api/verify-email', name: 'app_verify_email')]
     public function verifyUserEmail(Request $request): Response
     {
         try {
