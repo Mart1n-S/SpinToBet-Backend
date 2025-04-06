@@ -181,6 +181,10 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
             description: 'Récupérer la liste de tous les utilisateurs en tant qu’administrateur',
             normalizationContext: ['groups' => ['read:admin']],
             output: AdminReadDTO::class,
+            openapi: new Model\Operation(
+                tags: ['Admin_User'],
+                summary: 'Récupération de collection d’utilisateurs, avec pagination',
+            )
         ),
         new Post(
             uriTemplate: '/admin/user',
@@ -193,6 +197,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
                 AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false,
             ],
             openapi: new Model\Operation(
+                tags: ['Admin_User'],
                 summary: 'Création d’un nouvel utilisateur par un administrateur',
                 requestBody: new Model\RequestBody(
                     content: new \ArrayObject([
@@ -240,6 +245,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
                 AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false,
             ],
             openapi: new Model\Operation(
+                tags: ['Admin_User'],
                 summary: 'Mettre à jour partiellement un utilisateur en tant qu\'administrateur',
                 requestBody: new Model\RequestBody(
                     content: new \ArrayObject([
@@ -278,7 +284,11 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
             uriTemplate: '/admin/user/{id}',
             name: 'adminUserDelete',
             security: "is_granted('ROLE_ADMIN')",
-            processor: SoftDeleteUserProcessor::class
+            processor: SoftDeleteUserProcessor::class,
+            openapi: new Model\Operation(
+                tags: ['Admin_User'],
+                summary: 'Suppression d’un utilisateur de manière douce (soft delete)',
+            )
         ),
 
     ]
