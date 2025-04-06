@@ -20,9 +20,6 @@ services:
       - "../src/DependencyInjection/"
       - "../src/Entity/"
       - "../src/Kernel.php"
-  App\State\UserPasswordHasherPocessor:
-    bind:
-      $processor: "@api_platform.doctrine.orm.state.persist_processor"
 
   App\State\SoftDeleteUserProcessor:
     bind:

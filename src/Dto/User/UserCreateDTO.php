@@ -2,6 +2,8 @@
 
 namespace App\Dto\User;
 
+use App\Entity\User;
+use App\Validator\UniqueField;
 use Symfony\Component\Validator\Constraints as Assert;
 
 final class UserCreateDTO
@@ -11,6 +13,11 @@ final class UserCreateDTO
     #[Assert\Length(
         max: 180,
         maxMessage: 'L\'adresse email ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    #[UniqueField(
+        entityClass: User::class,
+        field: 'email',
+        message: 'Il existe déjà un compte avec cet email.'
     )]
     public ?string $email = null;
 
@@ -26,6 +33,11 @@ final class UserCreateDTO
     #[Assert\Regex(
         pattern: '/^[a-zA-Z0-9_]{2,20}$/',
         message: 'Le pseudonyme doit comporter entre 2 et 20 caractères et ne peut contenir que des lettres, des chiffres et des underscores (_).'
+    )]
+    #[UniqueField(
+        entityClass: User::class,
+        field: 'pseudo',
+        message: 'Ce pseudo est déjà utilisé.'
     )]
     public ?string $pseudo = null;
 

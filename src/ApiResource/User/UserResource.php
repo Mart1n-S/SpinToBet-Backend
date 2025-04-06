@@ -2,7 +2,9 @@
 
 namespace App\ApiResource\User;
 
-use App\Dto\UserDTO;
+use App\Dto\User\UserCreateDTO;
+use App\Dto\User\UserPatchDTO;
+use App\Dto\User\UserReadDTO;
 use App\Entity\User;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\Post;
@@ -23,7 +25,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
     operations: [
         new Post(
             uriTemplate: '/user',
-            input: UserDTO::class,
+            input: UserCreateDTO::class,
             processor: UserCreateProcessor::class,
             name: 'userPost',
             security: "is_granted('PUBLIC_ACCESS')",
@@ -69,7 +71,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
         new Get(
             uriTemplate: '/user/{id}',
             provider: UserReadProvider::class,
-            output: UserDTO::class,
+            output: UserReadDTO::class,
             name: 'userGet',
             security: "is_granted('IS_AUTHENTICATED_FULLY') and user.getId() == request.attributes.get('id')",
             normalizationContext: [
@@ -104,7 +106,7 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
         ),
         new Patch(
             uriTemplate: '/user/{id}',
-            input: UserDTO::class,
+            input: UserPatchDTO::class,
             processor: UserPatchProcessor::class,
             name: 'userPatch',
             security: "is_granted('IS_AUTHENTICATED_FULLY') and user.getId() == request.attributes.get('id')",
@@ -162,79 +164,3 @@ use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
     ]
 )]
 class UserResource {}
-
-// #[ApiResource(
-//     shortName: 'User',
-//     stateOptions: new Options(entityClass: User::class),
-//     operations: [
-//         new Post(
-//             uriTemplate: '/user',
-//             input: UserDTO::class,
-//             processor: UserCreateProcessor::class,
-//             name: 'userPost',
-//             security: "is_granted('PUBLIC_ACCESS')",
-//             description: 'Créer un nouvel utilisateur avec un éventuel code de parrainage',
-//             denormalizationContext: [
-//                 AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false,
-//             ],
-//             openapi: new Model\Operation(
-//                 summary: 'Inscription d’un nouvel utilisateur',
-//                 requestBody: new Model\RequestBody(
-//                     content: new \ArrayObject([
-//                         'application/json' => new Model\MediaType(
-//                             schema: new \ArrayObject([
-//                                 'type' => 'object',
-//                                 'properties' => [
-//                                     'email' => ['type' => 'string', 'example' => 'test@example.com'],
-//                                     'password' => ['type' => 'string', 'example' => 'MotDePasseSecure123!'],
-//                                     'pseudo' => ['type' => 'string', 'example' => 'PseudoCool'],
-//                                     'referralCode' => ['type' => 'string', 'example' => 'ABC123XYZ']
-//                                 ],
-//                                 'required' => ['email', 'password', 'pseudo']
-//                             ])
-//                         )
-//                     ])
-//                 ),
-//                 responses: [
-//                     '201' => [
-//                         'description' => 'Utilisateur créé avec succès',
-//                         'content' => [
-//                             'application/json' => [
-//                                 'schema' => [
-//                                     'type' => 'object',
-//                                     'properties' => [
-//                                         'message' => ['type' => 'string', 'example' => 'Utilisateur créé avec succès']
-//                                     ]
-//                                 ]
-//                             ]
-//                         ]
-//                     ]
-//                 ]
-//             )
-//         ),
-//         new Get(
-//             uriTemplate: '/user/{id}',
-//             provider: UserReadProvider::class,
-//             output: UserDTO::class,
-//             name: 'userGet',
-//             security: "is_granted('IS_AUTHENTICATED_FULLY') and user.getId() == request.attributes.get('id')",
-//             normalizationContext: [
-//                 'groups' => ['read:user'],
-//                 AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false,
-//             ]
-//         ),
-//         new Patch(
-//             uriTemplate: '/user/{id}',
-//             input: UserDTO::class,
-//             processor: UserPatchProcessor::class,
-//             name: 'userPatch',
-//             security: "is_granted('IS_AUTHENTICATED_FULLY') and user.getId() == request.attributes.get('id')",
-//             denormalizationContext: [
-//                 'groups' => ['patch:user'],
-//                 AbstractNormalizer::ALLOW_EXTRA_ATTRIBUTES => false,
-//             ],
-//             validationContext: ['groups' => ['patch:user']]
-//         )
-//     ]
-// )]
-// class UserResource {}

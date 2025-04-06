@@ -2,9 +2,9 @@
 
 namespace App\State\User;
 
-use App\Dto\UserDTO;
 use App\Entity\User;
 use App\Entity\ReferralLink;
+use App\Dto\User\UserCreateDTO;
 use App\Repository\UserRepository;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
@@ -12,10 +12,11 @@ use App\Repository\ReferralLinkRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use ApiPlatform\Doctrine\Common\State\PersistProcessor;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * @implements ProcessorInterface<UserDTO, User>
+ * @implements ProcessorInterface<UserCreateDTO, User>
  */
 final class UserCreateProcessor implements ProcessorInterface
 {
@@ -42,7 +43,7 @@ final class UserCreateProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): JsonResponse
     {
-        /** @var UserDTO $data */
+        /** @var UserCreateDTO $data */
         $user = new User();
         $user->setEmail($data->email);
         $user->setPseudo($data->pseudo);
@@ -64,15 +65,21 @@ final class UserCreateProcessor implements ProcessorInterface
         // Si un code parrain est fourni, appliquer le bonus
         if (!empty($data->referralCode)) {
             $referrer = $this->userRepository->findOneBy(['referralCode' => $data->referralCode]);
-            if ($referrer) {
-                $user->setBalance($user->getBalance() + 50);
-                $referrer->setBalance($referrer->getBalance() + 100);
 
-                $link = new ReferralLink();
-                $link->setReferrer($referrer);
-                $link->setReferred($user);
-                $this->referralLinkRepository->save($link);
+            // Si aucun parrain n'est trouvé, lever une exception
+            if (!$referrer) {
+                throw new BadRequestHttpException('Code parrain invalide.');
             }
+
+            // Ajouter des bonus au parrain et au filleul
+            $user->setBalance($user->getBalance() + 50);
+            $referrer->setBalance($referrer->getBalance() + 100);
+
+            // Créer un lien de parrainage
+            $link = new ReferralLink();
+            $link->setReferrer($referrer);
+            $link->setReferred($user);
+            $this->referralLinkRepository->save($link);
         }
 
         // Sauvegarde via le persistProcessor (utilise Doctrine automatiquement)

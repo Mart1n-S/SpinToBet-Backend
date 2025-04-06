@@ -37,6 +37,7 @@ final class UserPatchProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): JsonResponse
     {
+        /** @var UserCreateDTO $data */
 
         // Récupérer l'utilisateur depuis la base de données
         $user = $this->userRepository->findOneBy(['id' => $uriVariables['id']]);
@@ -45,20 +46,18 @@ final class UserPatchProcessor implements ProcessorInterface
             throw new BadRequestHttpException('Utilisateur non trouvé.');
         }
 
-        /** @var UserDTO $data */
+        // Vérification si la payload est vide (pas de pseudo, mot de passe, ni mot de passe actuel)
+        if (empty($data->pseudo) && empty($data->newPassword) && empty($data->currentPassword)) {
+            throw new BadRequestHttpException('Veuillez fournir un nouveau pseudo ou un nouveau mot de passe.');
+        }
 
         // Vérification de l'unicité du pseudo
         if ($data->pseudo !== null) {
             $user->setPseudo($data->pseudo);
-            $errors = $this->validator->validate($user, null, ['patch:user']);
-
-            if (count($errors) > 0) {
-                throw new BadRequestHttpException((string) $errors);
-            }
         }
 
         // Vérifier et mettre à jour le mot de passe
-        if ($data->password !== null) {
+        if ($data->newPassword !== null) {
             if (empty($data->currentPassword)) {
                 throw new BadRequestHttpException('Le mot de passe actuel est requis pour changer le mot de passe.');
             }
@@ -68,7 +67,7 @@ final class UserPatchProcessor implements ProcessorInterface
             }
 
             $user->setPassword(
-                $this->passwordHasher->hashPassword($user, $data->password)
+                $this->passwordHasher->hashPassword($user, $data->newPassword)
             );
         }
 
