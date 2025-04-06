@@ -55,3 +55,8 @@ services:
   App\Controller\SecurityController:
     arguments:
       $rateLimiterFactory: "@limiter.password_reset_limiter"
+
+  App\Validator\UniqueFieldValidator:
+    arguments:
+      $em: "@doctrine.orm.entity_manager"
+    tags: ["validator.constraint_validator"]

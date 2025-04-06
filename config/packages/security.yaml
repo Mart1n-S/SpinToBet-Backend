@@ -55,14 +55,10 @@ security:
         methods: [POST],
       } # Demande de réinitialisation du mot de passe
     - { path: ^/api/reset-password, roles: PUBLIC_ACCESS, methods: [POST] } # Réinitialisation du mot de passe
-    - { path: ^/api/users, roles: PUBLIC_ACCESS, methods: [POST] } # Création d'un utilisateur
+    - { path: ^/api/user, roles: PUBLIC_ACCESS, methods: [POST] } # Création d'un utilisateur
 
     # <----- Accès réservé aux utilisateurs connectés -----> #
-    - {
-        path: ^/api/users,
-        roles: IS_AUTHENTICATED_FULLY,
-        methods: [GET, PATCH],
-      } # Récupérer ou modifier l'utilisateur connecté
+    - { path: ^/api/user, roles: IS_AUTHENTICATED_FULLY, methods: [GET, PATCH] } # Récupérer ou modifier l'utilisateur connecté
 
     # <----- Accès réservé aux administrateurs -----> #
     - { path: ^/api/admin, roles: ROLE_ADMIN } # Toutes les routes sous /api/admin nécessitent le rôle ROLE_ADMIN

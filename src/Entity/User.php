@@ -2,23 +2,15 @@
 
 namespace App\Entity;
 
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Post;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
-use ApiPlatform\Metadata\Patch;
 use Symfony\Component\Uid\Uuid;
-use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
-use ApiPlatform\Metadata\ApiResource;
-use App\State\SoftDeleteUserProcessor;
 use Gedmo\Mapping\Annotation as Gedmo;
-use ApiPlatform\Metadata\GetCollection;
-use App\State\UserPasswordHasherPocessor;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
-use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -26,56 +18,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
 #[UniqueEntity(fields: ['email'], message: 'Il existe déjà un compte avec cet email.')]
-#[ApiResource(
-    normalizationContext: ['groups' => ['read:user']],
-    denormalizationContext: ['groups' => ['patch:user']],
-    paginationEnabled: false,
-    operations: [
-        new Post(
-            uriTemplate: '/user',
-            name: 'userPost',
-            security: "is_granted('PUBLIC_ACCESS')",
-            processor: UserPasswordHasherPocessor::class
-        ),
-        new Get(
-            uriTemplate: '/user/{id}',
-            name: 'userGet',
-            security: "is_granted('IS_AUTHENTICATED_FULLY') and object == user",  // L'utilisateur ne peut accéder qu'à ses propres données
-        ),
-        new Patch(
-            uriTemplate: '/user/{id}',
-            name: 'userPatch',
-            security: "is_granted('IS_AUTHENTICATED_FULLY') and object == user",
-            processor: UserPasswordHasherPocessor::class
-        ),
-        // <----- Partie Admin ----->
-        new GetCollection(
-            uriTemplate: '/admin/users',
-            name: 'adminUsersGetCollection',
-            security: "is_granted('ROLE_ADMIN')",
-            paginationEnabled: true
-        ),
-        new Post(
-            uriTemplate: '/admin/user',
-            name: 'adminUserPost',
-            security: "is_granted('ROLE_ADMIN')",
-            processor: UserPasswordHasherPocessor::class
-
-        ),
-        new Patch(
-            uriTemplate: '/admin/user/{id}',
-            name: 'adminUserPatch',
-            security: "is_granted('ROLE_ADMIN')",
-            processor: UserPasswordHasherPocessor::class
-        ),
-        new Delete(
-            uriTemplate: '/admin/user/{id}',
-            name: 'adminUserDelete',
-            security: "is_granted('ROLE_ADMIN')",
-            processor: SoftDeleteUserProcessor::class
-        ),
-    ],
-)]
+#[UniqueEntity(fields: ['pseudo'], message: 'Ce pseudo est déjà utilisé.')]
 #[Gedmo\SoftDeleteable(fieldName: "deletedAt", timeAware: false)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -85,19 +28,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: UuidType::NAME, unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator(class: 'doctrine.uuid_generator')]
-    #[Groups(['read:user'])]
     private ?Uuid $id = null;
 
     #[ORM\Column(length: 180)]
-    #[
-        Groups(['read:user', 'patch:user']),
-    ]
-    #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]
-    #[Assert\Email(message: 'L\'adresse email n\'est pas valide.')]
-    #[Assert\Length(
-        max: 180,
-        maxMessage: 'L\'adresse email ne peut pas dépasser {{ limit }} caractères.'
-    )]
     private ?string $email = null;
 
     #[ORM\Column(type: Types::BOOLEAN)]
@@ -107,47 +40,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var list<string> The user roles
      */
     #[ORM\Column]
-    #[Groups(['read:user'])]
     private array $roles = [];
 
     /**
      * @var string The hashed password
      */
     #[ORM\Column]
-    #[Groups(['patch:user'])]
-    #[Assert\NotBlank(message: 'Le mot de passe est obligatoire.')]
-    #[Assert\Regex(
-        pattern: '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{16,100}$/',
-        message: 'Le mot de passe doit comporter au moins 16 caractères et contenir au moins une minuscule, une majuscule, un chiffre et un caractère spécial.'
-    )]
-    #[Assert\NotCompromisedPassword(message: 'Ce mot de passe a été compromis dans une violation de données. Veuillez en choisir un autre.')]
     private ?string $password = null;
 
-    #[ORM\Column(length: 20)]
-    #[Groups(['read:user', 'patch:user'])]
-    #[Assert\NotBlank(message: 'Le pseudo est obligatoire.')]
-    #[Assert\Regex(
-        pattern: '/^[a-zA-Z0-9_]{2,20}$/',
-        message: 'Le pseudonyme doit comporter entre 2 et 20 caractères et ne peut contenir que des lettres, des chiffres et des underscores (_).'
-    )]
+    #[ORM\Column(length: 20, unique: true)]
     private ?string $pseudo = null;
 
     #[ORM\Column(type: Types::FLOAT, nullable: true)]
-    #[Groups(['read:user'])]
-    #[Assert\Range(
-        min: 0,
-        max: 1000000000,
-        notInRangeMessage: 'Le solde doit être compris entre {{ min }} et {{ max }}.'
-    )]
-    private ?float $balance = null;
+    private ?float $balance = 100.0;
+
+    #[ORM\Column(type: 'string', length: 32, unique: true)]
+    private ?string $referralCode = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['read:user'])]
-    private ?\DateTimeInterface $last_launch = null;
+    private ?\DateTimeInterface $lastLaunch = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
-    #[Groups(['read:user'])]
     private ?\DateTimeInterface $deletedAt = null;
+
+    /**
+     * @var Collection<int, ReferralLink>
+     */
+    #[ORM\OneToMany(targetEntity: ReferralLink::class, mappedBy: 'referrer', orphanRemoval: true)]
+    private Collection $referrals;
+
+    public function __construct()
+    {
+        $this->referrals = new ArrayCollection();
+    }
 
     public function getId(): ?Uuid
     {
@@ -260,25 +185,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getLastLaunch(): ?\DateTimeInterface
+    public function getReferralCode(): ?string
     {
-        return $this->last_launch;
+        return $this->referralCode;
     }
 
-    public function setLastLaunch(?\DateTimeInterface $last_launch): static
+    public function setReferralCode(string $referralCode): static
     {
-        $this->last_launch = $last_launch;
+        $this->referralCode = $referralCode;
+        return $this;
+    }
+
+    public function getLastLaunch(): ?\DateTimeInterface
+    {
+        return $this->lastLaunch;
+    }
+
+    public function setLastLaunch(?\DateTimeInterface $lastLaunch): static
+    {
+        $this->lastLaunch = $lastLaunch;
 
         return $this;
     }
 
-    #[Groups(['read:user'])]
     public function getCreatedAt(): ?\DateTime
     {
         return $this->createdAt;
     }
 
-    #[Groups(['read:user'])]
     public function getUpdatedAt(): ?\DateTime
     {
         return $this->updatedAt;
@@ -298,5 +232,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isDeleted(): bool
     {
         return $this->deletedAt !== null;
+    }
+
+    /**
+     * @return Collection<int, ReferralLink>
+     */
+    public function getReferrals(): Collection
+    {
+        return $this->referrals;
+    }
+
+    public function addReferral(ReferralLink $referral): static
+    {
+        if (!$this->referrals->contains($referral)) {
+            $this->referrals->add($referral);
+            $referral->setReferrer($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReferral(ReferralLink $referral): static
+    {
+        if ($this->referrals->removeElement($referral)) {
+            // set the owning side to null (unless already changed)
+            if ($referral->getReferrer() === $this) {
+                $referral->setReferrer(null);
+            }
+        }
+
+        return $this;
     }
 }

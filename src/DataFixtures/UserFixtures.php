@@ -27,6 +27,7 @@ class UserFixtures extends Fixture
                 $user,
                 'password'
             ));
+            $user->setReferralCode(substr($faker->unique()->uuid, 0, 32));
             $manager->persist($user);
         }
 
@@ -40,6 +41,7 @@ class UserFixtures extends Fixture
             $userAdmin,
             'password'
         ));
+        $userAdmin->setReferralCode(substr($faker->unique()->uuid, 0, 32));
         $manager->persist($userAdmin);
 
         // Création d'un utilisateur classique
@@ -51,6 +53,7 @@ class UserFixtures extends Fixture
             $userClassique,
             'password'
         ));
+        $userClassique->setReferralCode(substr($faker->unique()->uuid, 0, 32));
         $manager->persist($userClassique);
 
         $manager->flush();
