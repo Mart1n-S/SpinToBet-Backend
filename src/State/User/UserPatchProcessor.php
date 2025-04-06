@@ -11,6 +11,8 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+
 
 final class UserPatchProcessor implements ProcessorInterface
 {
@@ -19,6 +21,7 @@ final class UserPatchProcessor implements ProcessorInterface
         #[Autowire(service: PersistProcessor::class)] private ProcessorInterface $persistProcessor,
         private UserPasswordHasherInterface $passwordHasher,
         private ValidatorInterface $validator,
+        private AuthorizationCheckerInterface $authorizationChecker,
     ) {}
 
     /**
@@ -37,7 +40,7 @@ final class UserPatchProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): JsonResponse
     {
-        /** @var UserCreateDTO $data */
+        /** @var UserPatchDTO|AdminPatchDTO $data */
 
         // Récupérer l'utilisateur depuis la base de données
         $user = $this->userRepository->findOneBy(['id' => $uriVariables['id']]);
@@ -46,9 +49,26 @@ final class UserPatchProcessor implements ProcessorInterface
             throw new BadRequestHttpException('Utilisateur non trouvé.');
         }
 
-        // Vérification si la payload est vide (pas de pseudo, mot de passe, ni mot de passe actuel)
-        if (empty($data->pseudo) && empty($data->newPassword) && empty($data->currentPassword)) {
-            throw new BadRequestHttpException('Veuillez fournir un nouveau pseudo ou un nouveau mot de passe.');
+        // Si l'admin met à jour, on applique des règles supplémentaires
+        if ($this->authorizationChecker->isGranted('ROLE_ADMIN')) {
+            // Admin peut mettre à jour les rôles, le solde, etc.
+            if (isset($data->roles)) {
+                $user->setRoles($data->roles);
+            }
+
+            if (isset($data->balance)) {
+                $user->setBalance($data->balance);
+            }
+
+            if (isset($data->email)) {
+                $user->setEmail($data->email);
+            }
+
+            if (isset($data->password)) {
+                $user->setPassword(
+                    $this->passwordHasher->hashPassword($user, $data->password)
+                );
+            }
         }
 
         // Vérification de l'unicité du pseudo
@@ -57,7 +77,7 @@ final class UserPatchProcessor implements ProcessorInterface
         }
 
         // Vérifier et mettre à jour le mot de passe
-        if ($data->newPassword !== null) {
+        if (isset($data->newPassword) && $data->newPassword !== null) {
             if (empty($data->currentPassword)) {
                 throw new BadRequestHttpException('Le mot de passe actuel est requis pour changer le mot de passe.');
             }

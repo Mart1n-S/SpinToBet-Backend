@@ -5,6 +5,7 @@ namespace App\State\User;
 use App\Entity\User;
 use App\Entity\ReferralLink;
 use App\Dto\User\UserCreateDTO;
+use App\Dto\User\Admin\AdminCreateDTO;
 use App\Repository\UserRepository;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
@@ -16,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
- * @implements ProcessorInterface<UserCreateDTO, User>
+ * @implements ProcessorInterface<UserCreateDTO|AdminCreateDTO, User>
  */
 final class UserCreateProcessor implements ProcessorInterface
 {
@@ -43,17 +44,26 @@ final class UserCreateProcessor implements ProcessorInterface
      */
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): JsonResponse
     {
-        /** @var UserCreateDTO $data */
+        /** @var UserCreateDTO|AdminCreateDTO $data */
         $user = new User();
         $user->setEmail($data->email);
         $user->setPseudo($data->pseudo);
 
-        // Hasher le mot de passe
+        // Hacher le mot de passe
         $hashedPassword = $this->passwordHasher->hashPassword($user, $data->password);
         $user->setPassword($hashedPassword);
 
-        // Rôle par défaut
-        $user->setRoles(['ROLE_USER']);
+        // Rôles par défaut
+        if ($data instanceof AdminCreateDTO) {
+            $user->setRoles($data->roles);
+
+            // Si l'admin a spécifié un solde, l'appliquer
+            if ($data->balance !== null) {
+                $user->setBalance($data->balance);
+            }
+        } else {
+            $user->setRoles(['ROLE_USER']);
+        }
 
         // Génération d’un code de parrainage unique
         do {
@@ -62,8 +72,8 @@ final class UserCreateProcessor implements ProcessorInterface
 
         $user->setReferralCode($referralCode);
 
-        // Si un code parrain est fourni, appliquer le bonus
-        if (!empty($data->referralCode)) {
+        // Si un code de parrainage est fourni, appliquer le bonus
+        if ($data->referralCode) {
             $referrer = $this->userRepository->findOneBy(['referralCode' => $data->referralCode]);
 
             // Si aucun parrain n'est trouvé, lever une exception
@@ -82,7 +92,7 @@ final class UserCreateProcessor implements ProcessorInterface
             $this->referralLinkRepository->save($link);
         }
 
-        // Sauvegarde via le persistProcessor (utilise Doctrine automatiquement)
+        // Sauvegarde via le persistProcessor
         $this->persistProcessor->process($user, $operation, $uriVariables, $context);
 
         return new JsonResponse(['message' => 'Utilisateur créé avec succès'], JsonResponse::HTTP_CREATED);
