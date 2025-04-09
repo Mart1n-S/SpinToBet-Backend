@@ -43,10 +43,11 @@ final class UserPatchProcessor implements ProcessorInterface
         /** @var UserPatchDTO|AdminPatchDTO $data */
 
         // Récupérer l'utilisateur depuis la base de données
-        $user = $this->userRepository->findOneBy(['id' => $uriVariables['id']]);
+        $user = $this->userRepository->findOneBy(['id' => $uriVariables['id'], 'deletedAt' => null]);
 
+        // Vérification si l'utilisateur existe et n'est pas bloqué
         if (!$user) {
-            throw new BadRequestHttpException('Utilisateur non trouvé.');
+            return new JsonResponse(['error' => 'Cet utilisateur n\'existe pas ou est bloqué.'], JsonResponse::HTTP_FORBIDDEN);
         }
 
         // Si l'admin met à jour, on applique des règles supplémentaires

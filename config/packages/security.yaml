@@ -31,6 +31,7 @@ security:
       pattern: ^/api
       stateless: true
       provider: app_user_provider
+      user_checker: App\Security\CustomUserChecker # Permet de vérifier si le user n'est pas bloqué
       entry_point: jwt
       jwt: ~ # Utilisation du JWT comme méthode d'authentification
       refresh_jwt:

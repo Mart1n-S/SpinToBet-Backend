@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
+use App\Dto\User\UserPatchDTO;
 use App\Entity\PasswordResetToken;
 use App\Repository\UserRepository;
 use Symfony\Component\Mime\Address;
@@ -93,34 +93,45 @@ final class SecurityController extends AbstractController
     #[Route('/api/reset-password', name: 'reset_password', methods: ['POST'])]
     public function resetPassword(
         Request $request,
-        UserRepository $userRepository,
         PasswordResetTokenRepository $passwordResetTokenRepository,
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $em,
         ValidatorInterface $validator
     ): JsonResponse {
+        // Décodage du corps de la requête
         $data = json_decode($request->getContent(), true);
+
+        // Créer une instance de DTO et remplir avec les données reçues
+        $dto = new UserPatchDTO();
+        $dto->newPassword = $data['password'] ?? null;
+
+        // Validation du DTO
+        $errors = $validator->validate($dto);
+        if (count($errors) > 0) {
+            return new JsonResponse(['error' => $errors[0]->getMessage()], 400);
+        }
+
+        // Récupérer l'email et le token
         $email = $data['email'] ?? null;
         $token = $data['token'] ?? null;
-        $newPassword = $data['password'] ?? null;
 
+        // Validation de l'email et du token
         if (!$token) {
             return new JsonResponse(['error' => 'Le token est requis.'], 400);
         }
 
-        if (!$email || !$newPassword) {
+        if (!$email || !$dto->newPassword) {
             return new JsonResponse(['error' => 'Il est nécessaire de fournir un email et un nouveau mot de passe.'], 400);
         }
 
-        // Vérifier si l'email existe et que l'utilisateur est valide
-        $user = $userRepository->findOneBy(['email' => $email]);
-
+        // Vérifier si l'utilisateur existe et est valide
+        $user = $this->userRepository->findOneBy(['email' => $email]);
         if (!$user || !$user->isVerified() || $user->getDeletedAt() !== null) {
             return new JsonResponse(['error' => 'Compte invalide ou non vérifié.'], 400);
         }
 
+        // Vérifier si le token est valide
         $passwordResetToken = $passwordResetTokenRepository->findOneBy(['token' => $token, 'user' => $user]);
-
         if (!$passwordResetToken) {
             return new JsonResponse(['error' => 'Le token n\'est pas valide. Veuillez refaire une demande de réinitialisation.'], 400);
         }
@@ -130,18 +141,8 @@ final class SecurityController extends AbstractController
             return new JsonResponse(['error' => 'Le token a expiré. Veuillez refaire une demande de réinitialisation.'], 400);
         }
 
-        // Créer un objet temporaire pour valider le mot de passe avec les contraintes de `User`
-        $tempUser = new User();
-        $tempUser->setPassword($newPassword);
-
-        $errors = $validator->validateProperty($tempUser, 'password');
-
-        if (count($errors) > 0) {
-            return new JsonResponse(['error' => $errors[0]->getMessage()], 400);
-        }
-
-        // Hasher le nouveau mot de passe
-        $hashedPassword = $passwordHasher->hashPassword($user, $newPassword);
+        // Hasher le nouveau mot de passe et mettre à jour l'entité
+        $hashedPassword = $passwordHasher->hashPassword($user, $dto->newPassword);
         $user->setPassword($hashedPassword);
 
         // Supprimer le token après usage

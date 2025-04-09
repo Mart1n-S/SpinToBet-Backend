@@ -21,6 +21,10 @@ services:
       - "../src/Entity/"
       - "../src/Kernel.php"
 
+  App\Security\CustomUserChecker:
+    tags:
+      - { name: "security.user_checker" }
+
   App\State\SoftDeleteUserProcessor:
     bind:
       $processore: "@api_platform.doctrine.orm.state.persist_processor"

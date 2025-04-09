@@ -19,7 +19,7 @@ final class UserReadProvider implements ProviderInterface
         /** @var User|null $user */
         $user = $this->itemProvider->provide($operation, $uriVariables, $context);
 
-        if (!$user) {
+        if (!$user || $user->isDeleted()) {
             return null;
         }
 
